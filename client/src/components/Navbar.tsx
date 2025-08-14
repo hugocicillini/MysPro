@@ -1,15 +1,10 @@
-import axios from 'axios';
+import { Filter, Video } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { tagService, videoService } from '../services';
+import CreateVideo from './CreateVideo';
+import SearchBar from './SearchBar';
+import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from './ui/dialog';
-import { Input } from './ui/input';
 import {
   Select,
   SelectContent,
@@ -23,154 +18,186 @@ interface NavbarProps {
   setStatus: React.Dispatch<React.SetStateAction<string>>;
   status: string;
   search: string;
+  priority?: string;
+  setPriority?: React.Dispatch<React.SetStateAction<string>>;
+  difficulty?: string;
+  setDifficulty?: React.Dispatch<React.SetStateAction<string>>;
 }
 
-const Navbar = ({ setSearch, setStatus, status, search }: NavbarProps) => {
+const Navbar = ({
+  setSearch,
+  setStatus,
+  status,
+  search,
+  priority = '',
+  setPriority = () => {},
+  difficulty = '',
+  setDifficulty = () => {},
+}: NavbarProps) => {
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [statusOnCreate, setStatusOnCreate] = useState('');
+  const [statusOnCreate, setStatusOnCreate] = useState('learning');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
-    axios
-      .get('http://localhost:5000/api/tags')
-      .then((response) => {
-        setTags(response.data.map((tag: { name: string }) => tag.name));
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  }, []);
-
-  const createVideo = (e: any) => {
-    e.preventDefault();
-
-    const getYoutubeId = (url: string) => {
-      let urlTrimmed = url
-        .replace('https://www.youtube.com/watch?v=', '')
-        .replace('https://youtu.be/', '')
-        .split('&')[0];
-
-      return urlTrimmed;
+    const fetchTags = async () => {
+      try {
+        const response = await tagService.getTags({ limit: 100 });
+        setTags(response.tags.map((tag) => tag.name));
+      } catch (error) {
+        console.error('Erro ao buscar tags:', error);
+      }
     };
 
-    axios
-      .post('http://localhost:5000/api/videos/create', {
+    fetchTags();
+  }, []);
+
+  const createVideo = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      await videoService.createVideo({
         name,
-        url: getYoutubeId(url),
+        url,
         collectionTags: selectedTags,
-        status: statusOnCreate,
-      })
-      .then((res) => {
-        console.log(res.data);
-      })
-      .catch((error) => {
-        console.error(error);
+        status: statusOnCreate as 'learning' | 'watched' | 'later',
       });
+
+      // Limpar formulário
+      setName('');
+      setUrl('');
+      setSelectedTags([]);
+      setStatusOnCreate('learning');
+      setIsDialogOpen(false);
+
+      // Recarregar página para mostrar o novo vídeo
+      window.location.reload();
+    } catch (error) {
+      console.error('Erro ao criar vídeo:', error);
+    }
   };
 
+  const clearAllFilters = () => {
+    setStatus('');
+    setPriority('');
+    setDifficulty('');
+    setSearch('');
+  };
+
+  const activeFiltersCount = [status, priority, difficulty, search].filter(
+    Boolean
+  ).length;
+
   return (
-    <div className="flex justify-evenly p-4 items-center">
-      <div className="space-x-2">
-        <Button variant="outline" onClick={() => setStatus('learning')}>
-          Aprendendo
-        </Button>
-        <Button variant="outline" onClick={() => setStatus('later')}>
-          Futuros
-        </Button>
-        <Button variant="outline" onClick={() => setStatus('watched')}>
-          Realizados
-        </Button>
-        <span
-          className={`p-1 rounded-full ${
-            status
-              ? 'hover:scale-105 cursor-pointer bg-slate-200'
-              : 'cursor-not-allowed'
-          } transition-all`}
-          onClick={() => {
-            setStatus('');
-          }}
-        >
-          ❌
-        </span>
+    <div className="bg-white border-b border-gray-200 shadow-sm">
+      {/* Header Principal */}
+      <div className="mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <Video className="h-8 w-8 text-blue-600" />
+            <h1 className="text-xl font-bold text-gray-900">MysPro</h1>
+          </div>
+
+          {/* Search Bar - Centralizada */}
+          <div className="flex-1 max-w-2xl mx-8">
+            <SearchBar search={search} setSearch={setSearch} />
+          </div>
+
+          {/* Create Video Button */}
+          <CreateVideo
+            isDialogOpen={isDialogOpen}
+            setIsDialogOpen={setIsDialogOpen}
+            name={name}
+            setName={setName}
+            url={url}
+            setUrl={setUrl}
+            statusOnCreate={statusOnCreate}
+            setStatusOnCreate={setStatusOnCreate}
+            tags={tags}
+            selectedTags={selectedTags}
+            setSelectedTags={setSelectedTags}
+            createVideo={createVideo}
+          />
+        </div>
       </div>
-      <div className="flex items-center">
-        <Input
-          placeholder="Insira o nome ou a tag"
-          className="w-[300px] mr-2"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <span
-          className={`p-1 rounded-full ${
-            search
-              ? 'hover:scale-105 cursor-pointer bg-slate-200'
-              : 'cursor-not-allowed'
-          } transition-all`}
-          onClick={() => {
-            setSearch('');
-          }}
-        >
-          ❌
-        </span>
-      </div>
-      <Dialog>
-        <DialogTrigger className="bg-gray-100 shadow-md rounded-md p-2 hover:scale-105 transition-all">
-          Criar ➕
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="text-center">Adicionar Vídeo</DialogTitle>
-          </DialogHeader>
-          <DialogDescription>
-            <form onSubmit={createVideo} className="space-y-4">
-              <Input
-                placeholder="Insira o nome do vídeo"
-                onChange={(e) => setName(e.target.value)}
-              />
-              <Input
-                placeholder="Insira o link do vídeo"
-                onChange={(e) => setUrl(e.target.value)}
-              />
-              <div className="flex flex-col h-32 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                {tags.map((tagName) => (
-                  <label
-                    key={tagName}
-                    className="flex items-center p-2 rounded-md cursor-pointer hover:bg-gray-200"
-                  >
-                    <input
-                      type="checkbox"
-                      value={tagName}
-                      checked={selectedTags.includes(tagName)}
-                      onChange={() => {
-                        setSelectedTags((prev) =>
-                          prev.includes(tagName)
-                            ? prev.filter((t) => t !== tagName)
-                            : [...prev, tagName]
-                        );
-                      }}
-                      className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm">{tagName}</span>
-                  </label>
-                ))}
+
+      {/* Barra de Filtros */}
+      <div className="bg-gray-50 border-t border-gray-200">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">
+                  Filtros:
+                </span>
               </div>
-              <Select onValueChange={(value) => setStatusOnCreate(value)}>
-                <SelectTrigger className="w-[180px]">
+
+              {/* Status Filter */}
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="w-40 h-8">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="learning">Aprendendo</SelectItem>
-                  <SelectItem value="watched">Realizados</SelectItem>
-                  <SelectItem value="later">Futuros</SelectItem>
+                  <SelectItem value="later">Para Depois</SelectItem>
+                  <SelectItem value="watched">Assistido</SelectItem>
                 </SelectContent>
               </Select>
-              <Button type="submit">Adicionar</Button>
-            </form>
-          </DialogDescription>
-        </DialogContent>
-      </Dialog>
+
+              {/* Priority Filter */}
+              <Select value={priority} onValueChange={setPriority}>
+                <SelectTrigger className="w-40 h-8">
+                  <SelectValue placeholder="Prioridade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 - Baixa</SelectItem>
+                  <SelectItem value="2">2 - Baixa/Média</SelectItem>
+                  <SelectItem value="3">3 - Média</SelectItem>
+                  <SelectItem value="4">4 - Média/Alta</SelectItem>
+                  <SelectItem value="5">5 - Alta</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Difficulty Filter */}
+              <Select value={difficulty} onValueChange={setDifficulty}>
+                <SelectTrigger className="w-40 h-8">
+                  <SelectValue placeholder="Dificuldade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="beginner">Iniciante</SelectItem>
+                  <SelectItem value="intermediate">Intermediário</SelectItem>
+                  <SelectItem value="advanced">Avançado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Active Filters Count & Clear Button */}
+            <div className="flex items-center gap-3">
+              {activeFiltersCount > 0 && (
+                <>
+                  <Badge variant="secondary" className="text-xs">
+                    {activeFiltersCount} filtro
+                    {activeFiltersCount > 1 ? 's' : ''} ativo
+                    {activeFiltersCount > 1 ? 's' : ''}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearAllFilters}
+                    className="h-8 text-xs"
+                  >
+                    Limpar filtros
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

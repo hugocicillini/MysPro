@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
@@ -10,7 +9,8 @@ import {
   SelectValue,
 } from './ui/select';
 import { Button } from './ui/button';
-import { ScrollArea } from './ui/scroll-area'; // ShadCN ScrollArea for better scrolling
+import { ScrollArea } from './ui/scroll-area';
+import { videoService, tagService } from '../services';
 
 const ModalEdit = ({
   currentId,
@@ -25,12 +25,10 @@ const ModalEdit = ({
   const [statusOnCreate, setStatusOnCreate] = useState<string>('');
 
   useEffect(() => {
-    const fetchVideo = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get(
-          `http://localhost:5000/api/videos/${currentId}`
-        );
-        const videoData = response.data;
+        // Buscar dados do vídeo
+        const videoData = await videoService.getVideoById(currentId);
         setVideo({
           name: videoData.name,
           url: videoData.url,
@@ -39,35 +37,30 @@ const ModalEdit = ({
         setSelectedTags(
           videoData.collectionTags.map((tag: { name: string }) => tag.name)
         );
+
+        // Buscar todas as tags
+        const tagsResponse = await tagService.getTags({ limit: 100 });
+        setTags(tagsResponse.tags.map((tag) => tag.name));
       } catch (error) {
-        console.error('Erro ao buscar vídeo:', error);
+        console.error('Erro ao buscar dados:', error);
       }
     };
 
-    const fetchTags = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/api/tags');
-        setTags(response.data.map((tag: { name: string }) => tag.name));
-      } catch (error) {
-        console.error('Erro ao buscar tags:', error);
-      }
-    };
-
-    fetchVideo();
-    fetchTags();
+    fetchData();
   }, [currentId]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:5000/api/videos/${currentId}`, {
+      await videoService.updateVideo(currentId, {
         name: video.name,
         url: video.url,
-        status: statusOnCreate || video.status,
+        status: (statusOnCreate || video.status) as 'learning' | 'watched' | 'later',
         collectionTags: selectedTags,
       });
 
       setIsOpen(false);
+      window.location.reload(); // Recarregar para mostrar as mudanças
     } catch (error) {
       console.error('Erro ao atualizar vídeo:', error);
     }
