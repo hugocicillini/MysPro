@@ -7,6 +7,7 @@ import {
   Tag,
   TrendingUp,
   Video,
+  X,
 } from 'lucide-react';
 import React from 'react';
 import { Badge } from './ui/badge';
@@ -93,7 +94,7 @@ const CreateVideo: React.FC<CreateVideoProps> = ({
           <form onSubmit={createVideo} className="space-y-4 mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
+                <label className="text-sm font-medium text-gray-900 flex items-center">
                   Nome do Vídeo
                 </label>
                 <Input
@@ -105,7 +106,7 @@ const CreateVideo: React.FC<CreateVideoProps> = ({
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
+                <label className="text-sm font-medium text-gray-900 flex items-center">
                   URL do YouTube
                 </label>
                 <Input
@@ -119,7 +120,7 @@ const CreateVideo: React.FC<CreateVideoProps> = ({
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              <label className="text-sm font-medium text-gray-900 flex items-center gap-1">
                 <AlignLeft className="h-4 w-4" />
                 Descrição
               </label>
@@ -136,7 +137,7 @@ const CreateVideo: React.FC<CreateVideoProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
+                <label className="text-sm font-medium text-gray-900 flex items-center">
                   Status
                 </label>
                 <Select
@@ -167,7 +168,7 @@ const CreateVideo: React.FC<CreateVideoProps> = ({
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                <label className="text-sm font-medium text-gray-900 flex items-center gap-1">
                   <TrendingUp className="h-4 w-4" /> Dificuldade
                 </label>
                 <Select
@@ -188,7 +189,7 @@ const CreateVideo: React.FC<CreateVideoProps> = ({
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              <label className="text-sm font-medium text-gray-900 flex items-center gap-1">
                 <Star className="h-4 w-4" />
                 Prioridade
               </label>
@@ -207,21 +208,23 @@ const CreateVideo: React.FC<CreateVideoProps> = ({
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              <label className="text-sm font-medium text-gray-900 flex items-center gap-1">
                 <StickyNote className="h-4 w-4" />
                 Notas pessoais
               </label>
               <Textarea
                 placeholder="Suas anotações sobre o vídeo..."
                 value={notes}
-                onChange={(e: any) => setNotes(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setNotes(e.target.value)
+                }
                 className="w-full"
                 rows={2}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              <label className="text-sm font-medium text-gray-900 flex items-center gap-1">
                 <Tag className="h-4 w-4" />
                 Tags (opcional)
               </label>
@@ -229,25 +232,26 @@ const CreateVideo: React.FC<CreateVideoProps> = ({
                 {tags.length > 0 ? (
                   <div className="space-y-2">
                     {tags.map((tagName) => (
-                      <label
+                      <div
                         key={tagName}
                         className="flex items-center gap-2 text-sm cursor-pointer hover:bg-white rounded p-2 transition-colors"
+                        onClick={() => {
+                          setSelectedTags(
+                            selectedTags.includes(tagName)
+                              ? selectedTags.filter((t) => t !== tagName)
+                              : [...selectedTags, tagName]
+                          );
+                        }}
                       >
                         <input
                           type="checkbox"
                           value={tagName}
                           checked={selectedTags.includes(tagName)}
-                          onChange={() => {
-                            setSelectedTags(
-                              selectedTags.includes(tagName)
-                                ? selectedTags.filter((t) => t !== tagName)
-                                : [...selectedTags, tagName]
-                            );
-                          }}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          onChange={() => {}} // Controlado pelo onClick do div
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 pointer-events-none"
                         />
-                        <span>{tagName}</span>
-                      </label>
+                        <span className="flex-1">{tagName}</span>
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -256,15 +260,35 @@ const CreateVideo: React.FC<CreateVideoProps> = ({
                   </p>
                 )}
               </div>
-              {selectedTags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {selectedTags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
+              {/* Área fixa para tags selecionadas */}
+              <div className="h-6 mt-6">
+                {selectedTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 h-full overflow-y-auto">
+                    {selectedTags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="text-xs h-fit pr-1 pl-2 flex items-center gap-1 group"
+                      >
+                        <span>{tag}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedTags(
+                              selectedTags.filter((t) => t !== tag)
+                            );
+                          }}
+                          className="ml-1 h-4 w-4 p-0 hover:bg-gray-300 rounded-full transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2 pt-4">

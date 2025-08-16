@@ -59,8 +59,9 @@ const ListVideos = ({
 
   return (
     <div className="flex flex-col h-full">
-      <ScrollArea className="flex-1 px-2">
-        {videos.map((video) => (
+      <ScrollArea className="flex-1">
+        <div className="px-4 py-2">
+          {videos.map((video) => (
           <Card
             className="relative w-full mb-3 cursor-pointer hover:shadow-md transition-shadow"
             key={video._id}
@@ -137,6 +138,7 @@ const ListVideos = ({
             )}
           </Card>
         ))}
+        </div>
       </ScrollArea>
     </div>
   );

@@ -41,6 +41,12 @@ const Navbar = ({
   const [statusOnCreate, setStatusOnCreate] = useState('learning');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  // Estados para os novos campos
+  const [description, setDescription] = useState('');
+  const [difficultyOnCreate, setDifficultyOnCreate] = useState('beginner');
+  const [priorityOnCreate, setPriorityOnCreate] = useState('3');
+  const [notes, setNotes] = useState('');
+
   useEffect(() => {
     const fetchTags = async () => {
       try {
@@ -63,6 +69,13 @@ const Navbar = ({
         url,
         collectionTags: selectedTags,
         status: statusOnCreate as 'learning' | 'watched' | 'later',
+        description,
+        difficulty: difficultyOnCreate as
+          | 'beginner'
+          | 'intermediate'
+          | 'advanced',
+        priority: Number(priorityOnCreate),
+        notes,
       });
 
       // Limpar formulário
@@ -70,6 +83,10 @@ const Navbar = ({
       setUrl('');
       setSelectedTags([]);
       setStatusOnCreate('learning');
+      setDescription('');
+      setDifficultyOnCreate('beginner');
+      setPriorityOnCreate('3');
+      setNotes('');
       setIsDialogOpen(false);
 
       // Recarregar página para mostrar o novo vídeo
@@ -86,7 +103,7 @@ const Navbar = ({
     setSearch('');
   };
 
-  const activeFiltersCount = [status, priority, difficulty, search].filter(
+  const activeFiltersCount = [status, priority, difficulty].filter(
     Boolean
   ).length;
 
@@ -120,6 +137,14 @@ const Navbar = ({
             selectedTags={selectedTags}
             setSelectedTags={setSelectedTags}
             createVideo={createVideo}
+            description={description}
+            setDescription={setDescription}
+            difficulty={difficultyOnCreate}
+            setDifficulty={setDifficultyOnCreate}
+            priority={priorityOnCreate}
+            setPriority={setPriorityOnCreate}
+            notes={notes}
+            setNotes={setNotes}
           />
         </div>
       </div>
@@ -127,7 +152,7 @@ const Navbar = ({
       {/* Barra de Filtros */}
       <div className="bg-gray-50 border-t border-gray-200">
         <div className="mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-3">
+          <div className="flex items-center justify-between py-5">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-500" />
@@ -173,27 +198,27 @@ const Navbar = ({
                   <SelectItem value="advanced">Avançado</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
 
-            {/* Active Filters Count & Clear Button */}
-            <div className="flex items-center gap-3">
-              {activeFiltersCount > 0 && (
-                <>
-                  <Badge variant="secondary" className="text-xs">
-                    {activeFiltersCount} filtro
-                    {activeFiltersCount > 1 ? 's' : ''} ativo
-                    {activeFiltersCount > 1 ? 's' : ''}
-                  </Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearAllFilters}
-                    className="h-8 text-xs"
-                  >
-                    Limpar filtros
-                  </Button>
-                </>
-              )}
+              {/* Active Filters Count & Clear Button */}
+              <div className="flex items-center gap-3">
+                {activeFiltersCount > 0 && (
+                  <>
+                    <Badge variant="secondary">
+                      {activeFiltersCount} filtro
+                      {activeFiltersCount > 1 ? 's' : ''} ativo
+                      {activeFiltersCount > 1 ? 's' : ''}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearAllFilters}
+                      className="h-8 text-xs"
+                    >
+                      Limpar filtros
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

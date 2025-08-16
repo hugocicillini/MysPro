@@ -21,10 +21,21 @@ export const createVideo = async (req: Request, res: Response) => {
     // Extrair dados básicos do YouTube
     const youtubeData = extractBasicYouTubeData(url);
 
-    // Buscar tags por nome
-    const tagIds = await Tag.find({
-      name: { $in: collectionTags || [] },
-    }).select('_id');
+    // Busca case-insensitive - buscar tag por tag
+    const tagIds = [];
+    if (collectionTags && collectionTags.length > 0) {
+      for (const tagName of collectionTags) {
+        const foundTag = await Tag.findOne({
+          name: new RegExp(`^${tagName}$`, 'i'),
+        }).select('_id name');
+
+        if (foundTag) {
+          tagIds.push(foundTag);
+        } else {
+          console.log(`❌ Tag não encontrada: ${tagName}`);
+        }
+      }
+    }
 
     const newVideo = new Video({
       name: name || `Vídeo do YouTube`,
@@ -154,11 +165,25 @@ export const searchVideos = async (req: Request, res: Response) => {
 
     // Busca textual
     if (q) {
-      filter.$or = [
+      // Buscar tags que correspondem ao termo de busca
+      const matchingTags = await Tag.find({
+        name: { $regex: q, $options: 'i' },
+      });
+
+      const searchConditions: any[] = [
         { name: { $regex: q, $options: 'i' } },
         { description: { $regex: q, $options: 'i' } },
         { notes: { $regex: q, $options: 'i' } },
       ];
+
+      // Se encontrou tags que correspondem à busca, adicionar à condição
+      if (matchingTags.length > 0) {
+        searchConditions.push({
+          collectionTags: { $in: matchingTags.map((tag) => tag._id) },
+        });
+      }
+
+      filter.$or = searchConditions;
     }
 
     // Filtros
@@ -245,21 +270,31 @@ export const EditVideoById = async (req: Request, res: Response) => {
       notes,
     } = req.body;
 
-    // Buscar tags se fornecidas
+    // Buscar tags se fornecidas - com busca case-insensitive
     let tagIds: any[] = [];
     if (collectionTags && collectionTags.length > 0) {
-      const tags = await Tag.find({ name: { $in: collectionTags } });
-      tagIds = tags.map((tag) => tag._id);
+      for (const tagName of collectionTags) {
+        const foundTag = await Tag.findOne({
+          name: new RegExp(`^${tagName}$`, 'i'),
+        }).select('_id name');
+
+        if (foundTag) {
+          tagIds.push(foundTag._id);
+        } else {
+          console.log(`❌ Tag não encontrada na edição: ${tagName}`);
+        }
+      }
     }
 
-    const updateData: any = {
-      name,
-      status,
-      difficulty,
-      priority,
-      description,
-      notes,
-    };
+    // Criar objeto de atualização apenas com campos fornecidos
+    const updateData: any = {};
+
+    if (name !== undefined) updateData.name = name;
+    if (status !== undefined) updateData.status = status;
+    if (difficulty !== undefined) updateData.difficulty = difficulty;
+    if (priority !== undefined) updateData.priority = priority;
+    if (description !== undefined) updateData.description = description;
+    if (notes !== undefined) updateData.notes = notes;
 
     // Se URL mudou, extrair novos dados do YouTube
     if (url) {
@@ -269,7 +304,8 @@ export const EditVideoById = async (req: Request, res: Response) => {
       updateData.thumbnail = youtubeData.thumbnail;
     }
 
-    if (tagIds.length > 0) {
+    // Atualizar tags apenas se fornecidas
+    if (collectionTags !== undefined) {
       updateData.collectionTags = tagIds;
     }
 
@@ -292,7 +328,7 @@ export const EditVideoById = async (req: Request, res: Response) => {
       });
     }
 
-    console.error('Erro ao editar vídeo:', error);
+    console.error('❌ Erro ao editar vídeo:', error);
     return res.status(500).json({ message: 'Erro ao editar vídeo' });
   }
 };
@@ -310,8 +346,8 @@ export const updatePriority = async (req: Request, res: Response) => {
     }
 
     const video = await Video.findByIdAndUpdate(
-      req.params.id, 
-      { priority }, 
+      req.params.id,
+      { priority },
       { new: true }
     ).populate('collectionTags');
 

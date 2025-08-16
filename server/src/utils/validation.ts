@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { isValidYouTubeUrl } from '../utils/youtubeUtils';
 
-// Middleware para validar dados de vídeo
+// Middleware para validar dados de vídeo na criação
 export const validateVideoData = (req: Request, res: Response, next: NextFunction) => {
   const { name, url, status, difficulty, priority } = req.body;
   
@@ -31,6 +31,59 @@ export const validateVideoData = (req: Request, res: Response, next: NextFunctio
   
   if (priority && (typeof priority !== 'number' || priority < 1 || priority > 5)) {
     errors.push('Prioridade deve ser um número entre 1 e 5');
+  }
+  
+  if (errors.length > 0) {
+    return res.status(400).json({
+      message: 'Dados inválidos',
+      errors
+    });
+  }
+  
+  next();
+};
+
+// Middleware para validar dados de vídeo na edição (mais flexível)
+export const validateVideoUpdateData = (req: Request, res: Response, next: NextFunction) => {
+  const { name, url, status, difficulty, priority, description, notes } = req.body;
+  
+  const errors: string[] = [];
+  
+  if (name !== undefined) {
+    if (typeof name !== 'string' || name.trim().length === 0) {
+      errors.push('Nome deve ser uma string não vazia');
+    }
+    if (name.length > 200) {
+      errors.push('Nome não pode exceder 200 caracteres');
+    }
+  }
+  
+  if (url !== undefined) {
+    if (typeof url !== 'string') {
+      errors.push('URL deve ser uma string');
+    } else if (!isValidYouTubeUrl(url)) {
+      errors.push('URL deve ser um link válido do YouTube');
+    }
+  }
+  
+  if (status !== undefined && !['watched', 'later', 'learning'].includes(status)) {
+    errors.push('Status deve ser: watched, later ou learning');
+  }
+  
+  if (difficulty !== undefined && !['beginner', 'intermediate', 'advanced'].includes(difficulty)) {
+    errors.push('Dificuldade deve ser: beginner, intermediate ou advanced');
+  }
+  
+  if (priority !== undefined && (typeof priority !== 'number' || priority < 1 || priority > 5)) {
+    errors.push('Prioridade deve ser um número entre 1 e 5');
+  }
+
+  if (description !== undefined && typeof description !== 'string') {
+    errors.push('Descrição deve ser uma string');
+  }
+
+  if (notes !== undefined && typeof notes !== 'string') {
+    errors.push('Notas deve ser uma string');
   }
   
   if (errors.length > 0) {

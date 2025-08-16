@@ -12,7 +12,7 @@ import {
   markAsWatched,
   getVideoStats
 } from '../controllers/videoController';
-import { validateVideoData, validateSearchParams } from '../utils/validation';
+import { validateVideoData, validateVideoUpdateData, validateSearchParams } from '../utils/validation';
 
 const route = Router();
 
@@ -29,7 +29,7 @@ route.get('/by-tag/:tagId', getVideosByTag);
 route.get('/', validateSearchParams, getVideos);
 route.get('/:id', getVideoById);
 route.post('/create', validateVideoData, createVideo);
-route.put('/:id', validateVideoData, EditVideoById);
+route.put('/:id', validateVideoUpdateData, EditVideoById);
 route.delete('/:id', deleteVideoById);
 
 // Funcionalidades específicas

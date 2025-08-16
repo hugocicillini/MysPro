@@ -50,6 +50,18 @@ function App() {
     fetchVideos();
   }, [search, status, priority, difficulty]);
 
+  // Event listener para ESC
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setCurrentVideo(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const refreshVideos = async () => {
     try {
       let response;
@@ -106,6 +118,7 @@ function App() {
                 currentVideo={currentVideo}
                 setSearch={setSearch}
                 onVideoUpdate={refreshVideos}
+                setCurrentVideo={setCurrentVideo}
               />
             </div>
             {isOpen && (
